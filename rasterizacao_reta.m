@@ -20,6 +20,13 @@ function retaTela = normParaTela(retaNormalizada, resolucao)
     end
 end
 
+function [xp, yp] = produzFragmento(x,y)
+    xm = floor(x);
+    ym = floor(y);
+    xp = xm + 1;
+    yp = ym + 1;
+end
+
 %{
 Entrada:
     - uma matriz 2x2 em que cada linha representa um ponto em coordenadas
@@ -38,27 +45,46 @@ function img = rasterizarReta(reta, resolucao, img)
     alturaTela = resolucao(1, 2);
 
     % Calcule os deltas das coordenadas x e y
-    dx = (x2 - x1) / larguraTela;
-    dy = (y2 - y1) / alturaTela;
-
-    % Calcule os valores de x e y iniciais
-    x = x1;
-    y = y1;
-
-    % Rasterize o segmento de reta
-    for j = 1:larguraTela
-        % Arredonde os valores de x e y para os índices da matriz
-        x_index = round(x);
-        y_index = round(y);
-
-        % Verifique se o índice está dentro dos limites da matriz
-        if x_index >= 1 && x_index <= larguraTela && y_index >= 1 && y_index <= alturaTela
-            img(y_index, x_index) = 1; % Defina o pixel como branco
+    dx = x2 - x1;
+    dy = y2 - y1;
+    if (abs(dx) > abs(dy))
+        if (x1 > x2)
+            [x1, x2] = deal(x2, x1);
+            [y1, y2] = deal(y2, y1);
         end
+        x = x1;
+        y = y1;
+        m = dy / dx;
+        b = y1 - m * x1;
 
-        % Atualize os valores de x e y
-        x = x + dx;
-        y = y + dy;
+        % Rasterize o segmento de reta
+        [xp, yp] = produzFragmento(x, y);
+        img(yp, xp) = 1;
+        while (x < x2)
+            x = x + 1;
+            y = m * x + b;
+            [xp, yp] = produzFragmento(x, y);
+            img(yp, xp) = 1;
+        end
+    else
+        if (y1 > y2)
+            [x1, x2] = deal(x2, x1);
+            [y1, y2] = deal(y2, y1);
+        end
+        x = x1;
+        y = y1;
+        m = dx / dy;
+        b = x1 - m * y1;
+
+        % Rasterize o segmento de reta
+        [xp, yp] = produzFragmento(x, y);
+        img(yp, xp) = 1;
+        while (y < y2)
+            y = y + 1;
+            x = m * y + b;
+            [xp, yp] = produzFragmento(x, y);
+            img(yp, xp) = 1;
+        end
     end
 end
 
@@ -71,7 +97,7 @@ resolucoes = [100 100; 300 300; 800 600; 1920 1080];
 for i = 1:length(resolucoes)
     resolucao = resolucoes(i, :);
     % Crie uma matriz vazia para a imagem
-    img = zeros(resolucao(1, 1), resolucao(1, 2));
+    img = zeros(resolucao(1, 2), resolucao(1, 1));
     for j = 1:length(retasNormalizadas)
         retaTela = normParaTela(retasNormalizadas{j}, resolucao);
         img = rasterizarReta(retaTela, resolucao, img);
