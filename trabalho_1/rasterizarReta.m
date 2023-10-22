@@ -58,8 +58,9 @@ function img = rasterizarReta(reta, img)
 end
 
 function [xp, yp] = produzFragmento(x,y)
-    xm = floor(x);
-    ym = floor(y);
+    % Epsilon (eps) é utilizado para prevenir erros de ponto flutuante
+    xm = floor(x + eps(1e4));
+    ym = floor(y + eps(1e4));
     xp = xm + 1;
     yp = ym + 1;
 end
