@@ -31,22 +31,51 @@ function img = rasterizarCurva(curva, numPontos, img)
     end
 end
 
-curvasNormalizadas = {[0.5 0.4; 0.9 0.8; 0.5 -1; 0.5 -1] [-0.5 0.6; 0.3 0.6; -0.5 1; 0.3 1] ...
+function adicionarSeletoresNumeroPontos(vetorNumPontos)
+    for i = 1:length(vetorNumPontos)
+        seletor = uicontrol (
+        "style", "radiobutton",
+        "units", "normalized",
+        "string", sprintf('%d pontos', vetorNumPontos(i)),
+        "horizontalalignment", "left",
+        "value", i == 1,
+        "callback", @atualizarPlot,
+        "position", [i * 0.2 0 0.2 0.08]);
+    end
+end
+
+function atualizarPlot(obj, init = false)
+    h = 0;
+    if !init
+        h = guidata(obj);
+    end
+    curvasNormalizadas = {[0.5 0.4; 0.9 0.8; 0.5 -1; 0.5 -1] [-0.5 0.6; 0.3 0.6; -0.5 1; 0.3 1] ...
                       [-0.8 0; -0.4 0; 2.2 -2; 0 1.5] [0.7 -0.8; 0.7 -0.8; -2 -0.2; 2 -0.2] ...
                       [0 0; 0.8 -0.4; -5.8 1.8; -3 -1]};
-% Defina as resoluções desejadas
-resolucoes = [100 100; 300 300; 800 600; 1920 1080];
-% Loop através das diferentes resoluções
-for i = 1:length(resolucoes)
-    resolucao = resolucoes(i, :);
-    % Crie uma matriz vazia para a imagem
-    img = zeros(resolucao(1, 2), resolucao(1, 1));
-    for j = 1:length(curvasNormalizadas)
-        curvaTela = curvaNormParaTela(curvasNormalizadas{j}, resolucao);
-        img = rasterizarCurva(curvaTela, 50, img);
+    % Defina as resoluções desejadas
+    resolucoes = [100 100; 300 300; 800 600; 1920 1080];
+    % Loop através das diferentes resoluções
+    for i = 1:length(resolucoes)
+        resolucao = resolucoes(i, :);
+        % Crie uma matriz vazia para a imagem
+        img = zeros(resolucao(1, 2), resolucao(1, 1));
+        for j = 1:length(curvasNormalizadas)
+            curvaTela = curvaNormParaTela(curvasNormalizadas{j}, resolucao);
+            if init
+                img = rasterizarCurva(curvaTela, 5, img);
+            else
+                img = rasterizarCurva(curvaTela, h.value, img);
+            end
+        end
+        % Mostre a imagem
+        subplot(2, 2, i);
+        imshow(img);
+        if init
+            adicionarSeletoresNumeroPontos([5 10 50]);
+        end
+        title(sprintf('Resolução: %d x %d', resolucao));
     end
-    % Mostre a imagem
-    subplot(2, 2, i);
-    imshow(img);
-    title(['Resolução: ' num2str(resolucao)]);
 end
+
+atualizarPlot([], true)
+
