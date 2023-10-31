@@ -1,65 +1,67 @@
-function polygon_rasterization_demo()
-    % Exemplo 1: Triângulo equilátero
-    triangle_vertices = [1, 1; 3, 1; 2, 3];
-    resolutions = [0.1, 0.05, 0.02, 0.01];
-    
-    figure;
-    subplot(2, 2, 1);
-    rasterize_polygon(triangle_vertices, resolutions(1), 'Triângulo (0.1 res.)');
-    subplot(2, 2, 2);
-    rasterize_polygon(triangle_vertices, resolutions(2), 'Triângulo (0.05 res.)');
-    subplot(2, 2, 3);
-    rasterize_polygon(triangle_vertices, resolutions(3), 'Triângulo (0.02 res.)');
-    subplot(2, 2, 4);
-    rasterize_polygon(triangle_vertices, resolutions(4), 'Triângulo (0.01 res.)');
-    
-    % Exemplo 2: Quadrado
-    square_vertices = [1, 1; 3, 1; 3, 3; 1, 3];
-    
-    figure;
-    subplot(2, 2, 1);
-    rasterize_polygon(square_vertices, resolutions(1), 'Quadrado (0.1 res.)');
-    subplot(2, 2, 2);
-    rasterize_polygon(square_vertices, resolutions(2), 'Quadrado (0.05 res.)');
-    subplot(2, 2, 3);
-    rasterize_polygon(square_vertices, resolutions(3), 'Quadrado (0.02 res.)');
-    subplot(2, 2, 4);
-    rasterize_polygon(square_vertices, resolutions(4), 'Quadrado (0.01 res.)');
-    
-    % Exemplo 3: Hexágono
-    hexagon_vertices = [2, 1; 1, 2; 2, 3; 4, 3; 5, 2; 4, 1];
-    
-    figure;
-    subplot(2, 2, 1);
-    rasterize_polygon(hexagon_vertices, resolutions(1), 'Hexágono (0.1 res.)');
-    subplot(2, 2, 2);
-    rasterize_polygon(hexagon_vertices, resolutions(2), 'Hexágono (0.05 res.)');
-    subplot(2, 2, 3);
-    rasterize_polygon(hexagon_vertices, resolutions(3), 'Hexágono (0.02 res.)');
-    subplot(2, 2, 4);
-    rasterize_polygon(hexagon_vertices, resolutions(4), 'Hexágono (0.01 res.)');
+% Arquivo de script
+1;
+
+function poligonoTela = poligonoNormParaTela(poligonoNormalizado, resolucao)
+    poligonoTela = zeros(4,2);
+    for i = 1:4
+        poligonoTela(i,:) = pontoNormParaTela(poligonoNormalizado(i,:), resolucao);
+    end
 end
 
-function rasterize_polygon(vertices, resolution, title_str)
-    min_x = min(vertices(:, 1));
-    max_x = max(vertices(:, 1));
-    min_y = min(vertices(:, 2));
-    max_y = max(vertices(:, 2));
-    
-    [X, Y] = meshgrid(min_x:resolution:max_x, min_y:resolution:max_y);
-    [rows, cols] = size(X);
-    
-    in_polygon = inpolygon(X(:), Y(:), vertices(:, 1), vertices(:, 2));
-    
-    X(~in_polygon) = NaN;
-    Y(~in_polygon) = NaN;
-    
-    scatter(X(:), Y(:), 10, 'r', 'filled');
-    axis([min_x - 1, max_x + 1, min_y - 1, max_y + 1]);
-    title(title_str);
-    grid on;
-    axis equal;
+function img = rasterizarPoligono(poligono, img)
+    % Rasterizar as arestas do polígono
+    numVertices = length(poligono);
+    for i = 1:numVertices - 1
+        reta = [poligono(i,:); poligono(i + 1,:)];
+        img = rasterizarReta(reta, img);
+    end
+    retaFinal = [poligono(numVertices,:); poligono(1, :)];
+    img = rasterizarReta(retaFinal, img);
+    % Pintar o interior do polígono por meio de scanline
+    numLinhas = rows(img);
+    numColunas = columns(img);
+    for i = 1:numLinhas
+        numIntersecoes = 0;
+        for j = 1:numColunas-1
+            % A interseção é contada logo antes de entrar no interior do polígono
+            if img(i, j) == 1 && img(i, j + 1) != 1
+                if mod(numIntersecoes, 2) == 1
+                    numIntersecoes += 1;
+                    continue;
+                else
+                    % Checa se existe aresta no restante das colunas para
+                    % evitar a contagem de um vértice indevido
+                    for k = j+2:numColunas
+                        if img(i, k) == 1
+                            numIntersecoes += 1;
+                            break;
+                        end
+                    end
+                end
+            end
+            % Efetivamente pinta o interior do polígono
+            if mod(numIntersecoes, 2) == 1
+                img(i, j) = 1;
+            end
+        end
+    end
 end
 
-% Chamar a função de demonstração
-polygon_rasterization_demo();
+poligonosNormalizados = {[0.0 0.0; 0.2 0.2; 0.4 0.0; 0.2 -0.2]};
+%{[0.0 0.0; 0.2 0.2; 0.4 0.0; 0.2 -0.2], [0.6 0.0; 0.6 0.2; 0.8 0.2; 0.8 0.0]};
+% Defina as resoluções desejadas
+resolucoes = [100 100; 300 300; 800 600; 1920 1080];
+% Loop através das diferentes resoluções
+for i = 1:length(resolucoes)
+    resolucao = resolucoes(i, :);
+    % Crie uma matriz vazia para a imagem
+    img = zeros(resolucao(1, 2), resolucao(1, 1));
+    for j = 1:length(poligonosNormalizados)
+        poligonoTela = poligonoNormParaTela(poligonosNormalizados{j}, resolucao);
+        img = rasterizarPoligono(poligonoTela, img);
+    end
+    % Mostre a imagem
+    subplot(2, 2, i);
+    imshow(img);
+    title(sprintf('Resolução: %d x %d', resolucao));
+end

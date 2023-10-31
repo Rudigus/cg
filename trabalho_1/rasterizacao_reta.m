@@ -35,5 +35,5 @@ for i = 1:length(resolucoes)
     % Mostre a imagem
     subplot(2, 2, i);
     imshow(img);
-    title(['Resolução: ' num2str(resolucao)]);
+    title(sprintf('Resolução: %d x %d', resolucao));
 end
