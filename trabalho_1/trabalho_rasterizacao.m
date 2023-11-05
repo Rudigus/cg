@@ -60,6 +60,17 @@ function [xp, yp] = produzFragmento(x,y)
     yp = ym + 1;
 end
 
+% Seta um pixel da imagem fornecida nas coordenadas fornecidas,
+% caso sejam coordenadas válidas
+function img = setaPixel(x, y, img)
+    numLinhas = rows(img);
+    numColunas = columns(img);
+    if x < 1 || x > numColunas || y < 1 || y > numLinhas
+        return;
+    end
+    img(y, x) = 1;
+end
+
 %{
 Entrada:
     - uma matriz 2x2 em que cada linha representa um ponto em coordenadas
@@ -90,12 +101,12 @@ function img = rasterizarReta(reta, img)
 
         % Rasterize o segmento de reta
         [xp, yp] = produzFragmento(x, y);
-        img(yp, xp) = 1;
+        img = setaPixel(xp, yp, img);
         while (x < x2)
             x = x + 1;
             y = m * x + b;
             [xp, yp] = produzFragmento(x, y);
-            img(yp, xp) = 1;
+            img = setaPixel(xp, yp, img);
         end
     else
         if (y1 > y2)
@@ -109,12 +120,12 @@ function img = rasterizarReta(reta, img)
 
         % Rasterize o segmento de reta
         [xp, yp] = produzFragmento(x, y);
-        img(yp, xp) = 1;
+        img = setaPixel(xp, yp, img);
         while (y < y2)
             y = y + 1;
             x = m * y + b;
             [xp, yp] = produzFragmento(x, y);
-            img(yp, xp) = 1;
+            img = setaPixel(xp, yp, img);
         end
     end
 end
@@ -214,13 +225,13 @@ function atualizarPlot(obj, init = false)
         % Mostre a imagem
         switch i
             case 1
-                subplotPosition = [0 0.1 0.25 0.25];
-            case 2
                 subplotPosition = [0 0.5 0.25 0.25];
-            case 3
-                subplotPosition = [0.3 0.1 0.25 0.25];
-            case 4
+            case 2
                 subplotPosition = [0.3 0.5 0.25 0.25];
+            case 3
+                subplotPosition = [0 0.1 0.25 0.25];
+            case 4
+                subplotPosition = [0.3 0.1 0.25 0.25];
         end
         subplot("position", subplotPosition);
         imshow(img);
