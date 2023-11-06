@@ -37,12 +37,14 @@ Saída:
     - Uma matriz 2x2 em que cada linha representa um ponto em coordenadas
  do dispositivo.
 %}
+%{
 function curvaTela = curvaNormParaTela(curvaNormalizada, resolucao)
     curvaTela = zeros(4,2);
     for i = 1:4
         curvaTela(i,:) = pontoNormParaTela(curvaNormalizada(i,:), resolucao);
     end
 end
+%}
 
 function poligonoTela = poligonoNormParaTela(poligonoNormalizado, resolucao)
     numPontos = rows(poligonoNormalizado);
@@ -130,12 +132,13 @@ function img = rasterizarReta(reta, img)
     end
 end
 
-function img = rasterizarCurva(curva, numPontos, img)
+function img = rasterizarCurva(curvaNormalizada, numPontos, img)
     pontos = zeros(numPontos,2);
     for i = 1:numPontos
         t = (i - 1) * (1 / (numPontos - 1));
-        pontos(i,:) = [t^3 t^2 t 1] * [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0] ...
-                      * curva;
+        pontoNormalizado = [t^3 t^2 t 1] * [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0] ...
+                      * curvaNormalizada;
+        pontos(i,:) = pontoNormParaTela(pontoNormalizado, [columns(img) rows(img)]);
     end
     for i = 1:numPontos - 1
         reta = [pontos(i,:); pontos(i + 1,:)];
@@ -186,6 +189,27 @@ function img = rasterizarPoligono(poligono, img)
     img = bitor(img, imgAux);
 end
 
+function plotarReta(reta)
+    plot(reta(:, 1), reta(:, 2), "color", "k");
+end
+
+function plotarCurva(curva, numPontos)
+    pontos = zeros(numPontos,2);
+    for i = 1:numPontos
+        t = (i - 1) * (1 / (numPontos - 1));
+        pontos(i,:) = [t^3 t^2 t 1] * [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0] ...
+                      * curva;
+    end
+    for i = 1:numPontos - 1
+        reta = [pontos(i,:); pontos(i + 1,:)];
+        plotarReta(reta);
+    end
+end
+
+function plotarPoligono(poligono)
+    fill(poligono(:, 1), poligono(:, 2), "k");
+end
+
 global imgs = {};
 
 function atualizarPlot(obj, init = false)
@@ -193,6 +217,15 @@ function atualizarPlot(obj, init = false)
     h = guidata(obj);
     % Defina as resoluções desejadas
     resolucoes = [100 100; 300 300; 800 600; 1920 1080];
+    % Mostra o espaço normalizado
+    subplotPosition = [0.2 0.75 0.2 0.2];
+    subplot("position", subplotPosition);
+    xlim([-1 1]);
+    ylim([-1 1]);
+    hold on;
+    title(sprintf('Espaço Normalizado'), "fontSize", 10);
+    set(gca, 'YDir','reverse');
+    axis("square");
     % Loop através das diferentes resoluções
     for i = 1:length(resolucoes)
         resolucao = resolucoes(i, :);
@@ -208,6 +241,9 @@ function atualizarPlot(obj, init = false)
                 retaNormalizada = [x1; x2];
                 retaTela = retaNormParaTela(retaNormalizada, resolucao);
                 img = rasterizarReta(retaTela, img);
+                if i == 1
+                    plotarReta(retaNormalizada);
+                end
             case h.botaoAdicionarCurva
                 x1 = str2num(get (h.campoPontoCurva1, "string"));
                 x2 = str2num(get (h.campoPontoCurva2, "string"));
@@ -215,23 +251,29 @@ function atualizarPlot(obj, init = false)
                 t2 = str2num(get (h.campoTangenteCurva2, "string"));
                 numPontos = str2num(get (h.campoNumPontos, "string"));
                 curvaNormalizada = [x1; x2; t1; t2];
-                curvaTela = curvaNormParaTela(curvaNormalizada, resolucao);
-                img = rasterizarCurva(curvaTela, numPontos, img);
+                %curvaTela = curvaNormParaTela(curvaNormalizada, resolucao);
+                img = rasterizarCurva(curvaNormalizada, numPontos, img);
+                if i == 1
+                    plotarCurva(curvaNormalizada, numPontos);
+                end
             case h.botaoAdicionarPoligono
                 poligonoNormalizado = str2num(get (h.campoArestasPoligono, "string"));
                 poligonoTela = poligonoNormParaTela(poligonoNormalizado, resolucao);
                 img = rasterizarPoligono(poligonoTela, img);
+                if i == 1
+                    plotarPoligono(poligonoNormalizado);
+                end
         end
         % Mostre a imagem
         switch i
             case 1
-                subplotPosition = [0 0.5 0.25 0.25];
+                subplotPosition = [0 0.4 0.25 0.25];
             case 2
-                subplotPosition = [0.3 0.5 0.25 0.25];
+                subplotPosition = [0.3 0.4 0.25 0.25];
             case 3
-                subplotPosition = [0 0.1 0.25 0.25];
+                subplotPosition = [0 0.05 0.25 0.25];
             case 4
-                subplotPosition = [0.3 0.1 0.25 0.25];
+                subplotPosition = [0.3 0.05 0.25 0.25];
         end
         subplot("position", subplotPosition);
         imshow(img);
